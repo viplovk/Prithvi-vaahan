@@ -24,7 +24,9 @@ import {
   Activity,
   Zap,
   Info,
-  X
+  X,
+  Waves,
+  ArrowDown
 } from 'lucide-react';
 import { ARCHITECTURE_TIERS } from '../data/projectData';
 
@@ -39,6 +41,8 @@ export default function ThreeDModelMap() {
   const [isNight, setIsNight] = useState(false);
   const [showNightLightingInfo, setShowNightLightingInfo] = useState(true);
   const [isRaining, setIsRaining] = useState(false);
+  const [showRainFiltrationInfo, setShowRainFiltrationInfo] = useState(true);
+  const [rainIntensity, setRainIntensity] = useState<'moderate' | 'cloudburst'>('cloudburst');
   const [trafficRunning, setTrafficRunning] = useState(true);
   const [cameraPreset, setCameraPreset] = useState<'town' | 'stepwell' | 'residential' | 'market' | 'underground'>('town');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -50,6 +54,7 @@ export default function ThreeDModelMap() {
   const animFlagsRef = useRef({
     isNight: false,
     isRaining: false,
+    rainIntensity: 'cloudburst' as 'moderate' | 'cloudburst',
     trafficRunning: true,
     viewMode: 'realistic',
     showFlows: true
@@ -74,7 +79,8 @@ export default function ThreeDModelMap() {
 
   useEffect(() => {
     animFlagsRef.current.isRaining = isRaining;
-  }, [isRaining]);
+    animFlagsRef.current.rainIntensity = rainIntensity;
+  }, [isRaining, rainIntensity]);
 
   useEffect(() => {
     animFlagsRef.current.trafficRunning = trafficRunning;
@@ -208,8 +214,43 @@ export default function ThreeDModelMap() {
         emissive: 0x000000,
         emissiveIntensity: 0
       }),
-      deepAquifer: new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4, transparent: true, opacity: 0.75 }),
+      deepAquifer: new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4, transparent: true, opacity: 0.65 }),
       strataGravel: new THREE.MeshStandardMaterial({ color: 0x44403c, roughness: 0.95 }),
+      strataSand: new THREE.MeshStandardMaterial({ 
+        color: 0xc29b68, 
+        roughness: 0.85, 
+        transparent: true, 
+        opacity: 0.45,
+        side: THREE.DoubleSide
+      }),
+      strataCharcoal: new THREE.MeshStandardMaterial({ 
+        color: 0x262626, 
+        roughness: 0.9, 
+        transparent: true, 
+        opacity: 0.55,
+        side: THREE.DoubleSide
+      }),
+      strataPumice: new THREE.MeshStandardMaterial({ 
+        color: 0x44403c, 
+        roughness: 0.95, 
+        transparent: true, 
+        opacity: 0.42,
+        side: THREE.DoubleSide
+      }),
+      boreShaftGlass: new THREE.MeshStandardMaterial({ 
+        color: 0x38bdf8, 
+        roughness: 0.1, 
+        metalness: 0.3,
+        transparent: true, 
+        opacity: 0.35,
+        side: THREE.DoubleSide
+      }),
+      filtrationTierRing: new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide
+      }),
       
       // Sanctuary Energy-Free Lighting Materials
       photoluminescentStep: new THREE.MeshStandardMaterial({
@@ -534,16 +575,60 @@ export default function ThreeDModelMap() {
       townGroup.add(col);
     }
 
-    // Tier 4 Deep Aquifer Basin
-    const deepStrataGeo = new THREE.CylinderGeometry(poolRadius + 0.3, poolRadius + 1.2, 6.5, 24);
-    const deepStrataMesh = new THREE.Mesh(deepStrataGeo, materials.strataGravel);
-    deepStrataMesh.position.y = -10.0;
-    townGroup.add(deepStrataMesh);
+    // ==========================================
+    // TIER 4: SUBTERRANEAN FILTRATION STRATA & AQUIFER BASIN (CUTAWAY ARCHITECTURE)
+    // ==========================================
+    // Cutaway cylinder (leaving front quadrant open between 0° and 90° for direct visibility into filtration layers)
+    const cutawayThetaStart = Math.PI * 0.35;
+    const cutawayThetaLength = Math.PI * 1.45;
 
-    const aquiferChamberGeo = new THREE.CylinderGeometry(poolRadius + 3.0, poolRadius + 3.6, 3.2, 24);
+    // Strata 4A: Coarse Sand & Fine Silt Filter Bed (-6.5m to -8.3m)
+    const strataSandGeo = new THREE.CylinderGeometry(poolRadius + 0.3, poolRadius + 0.6, 1.8, 24, 1, false, cutawayThetaStart, cutawayThetaLength);
+    const strataSandMesh = new THREE.Mesh(strataSandGeo, materials.strataSand);
+    strataSandMesh.position.y = -7.4;
+    townGroup.add(strataSandMesh);
+
+    // Strata 4B: Activated Carbon & Geotextile Membrane Bed (-8.3m to -10.1m)
+    const strataCharcoalGeo = new THREE.CylinderGeometry(poolRadius + 0.6, poolRadius + 0.95, 1.8, 24, 1, false, cutawayThetaStart, cutawayThetaLength);
+    const strataCharcoalMesh = new THREE.Mesh(strataCharcoalGeo, materials.strataCharcoal);
+    strataCharcoalMesh.position.y = -9.2;
+    townGroup.add(strataCharcoalMesh);
+
+    // Strata 4C: Volcanic Pumice & Graded River Pebble Matrix (-10.1m to -12.4m)
+    const strataPumiceGeo = new THREE.CylinderGeometry(poolRadius + 0.95, poolRadius + 1.35, 2.3, 24, 1, false, cutawayThetaStart, cutawayThetaLength);
+    const strataPumiceMesh = new THREE.Mesh(strataPumiceGeo, materials.strataPumice);
+    strataPumiceMesh.position.y = -11.25;
+    townGroup.add(strataPumiceMesh);
+
+    // Central High-Pressure Deep-Bore Recharge Column Shaft
+    const boreShaftGeo = new THREE.CylinderGeometry(0.5, 0.5, 6.2, 16, 1, true);
+    const boreShaftMesh = new THREE.Mesh(boreShaftGeo, materials.boreShaftGlass);
+    boreShaftMesh.position.y = -9.6;
+    townGroup.add(boreShaftMesh);
+
+    // Luminous Stratification Tier Depth Boundary Rings
+    const tierDepths = [-6.4, -8.3, -10.1, -12.4];
+    tierDepths.forEach((d, idx) => {
+      const ringR = poolRadius + 0.3 + (idx * 0.35);
+      const ringGeo = new THREE.RingGeometry(ringR - 0.08, ringR + 0.08, 36);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMesh = new THREE.Mesh(ringGeo, materials.filtrationTierRing);
+      ringMesh.position.y = d;
+      townGroup.add(ringMesh);
+    });
+
+    // Deep Regional Aquifer Chamber (-12.5m to -15.8m)
+    const aquiferChamberGeo = new THREE.CylinderGeometry(poolRadius + 3.0, poolRadius + 3.6, 3.2, 28, 1, false, cutawayThetaStart, cutawayThetaLength);
     const aquiferMesh = new THREE.Mesh(aquiferChamberGeo, materials.deepAquifer);
     aquiferMesh.position.y = -14.2;
     townGroup.add(aquiferMesh);
+
+    // Deep Aquifer Recharge Pool Floor
+    const aquiferFloorGeo = new THREE.CircleGeometry(poolRadius + 3.2, 32);
+    aquiferFloorGeo.rotateX(-Math.PI / 2);
+    const aquiferFloor = new THREE.Mesh(aquiferFloorGeo, materials.water);
+    aquiferFloor.position.y = -15.6;
+    townGroup.add(aquiferFloor);
 
     // Geological Cutaway Profile Walls
     const wallGeo = new THREE.BoxGeometry(townRadius * 2, 16, 1);
@@ -902,34 +987,62 @@ export default function ThreeDModelMap() {
     }
 
     // ==========================================
-    // 7. PARTICLE SYSTEMS (INFILTRATION, CONVECTION & MONSOON RAIN)
+    // 7. PARTICLE SYSTEMS (FILTRATION, CONVECTION & MONSOON RAIN)
     // ==========================================
 
-    // A. Subterranean Water Infiltration Particles
-    const waterParticleCount = 450;
-    const waterGeoP = new THREE.BufferGeometry();
-    const waterPos = new Float32Array(waterParticleCount * 3);
-    const waterSpeed = new Float32Array(waterParticleCount);
-
-    for (let i = 0; i < waterParticleCount; i++) {
-      const rad = Math.random() * 7.5;
-      const ang = Math.random() * Math.PI * 2;
-      waterPos[i * 3] = Math.cos(ang) * rad;
-      waterPos[i * 3 + 1] = -(Math.random() * 14);
-      waterPos[i * 3 + 2] = Math.sin(ang) * rad;
-      waterSpeed[i] = 0.06 + Math.random() * 0.06;
+    // A. Multi-Tier Subterranean Floodwater Filtration Particles
+    const floodParticleCount = 1500;
+    const floodGeoP = new THREE.BufferGeometry();
+    const floodPositions = new Float32Array(floodParticleCount * 3);
+    const floodColors = new Float32Array(floodParticleCount * 3);
+    
+    interface FloodParticleData {
+      progress: number;        // 0.0 (surface bioswales) -> 1.0 (deep aquifer)
+      speed: number;           // base flow speed
+      angle: number;           // azimuthal angle around stepwell
+      radialJitter: number;    // lateral deviation from ideal trajectory
+      swirlMultiplier: number; // swirl rate down the 7 baoli steps
+      phaseOffset: number;     // wave phase for natural splash
+      jitterSeed: number;      // porous tortuosity in filtration bed
     }
 
-    waterGeoP.setAttribute('position', new THREE.BufferAttribute(waterPos, 3));
-    const waterMatP = new THREE.PointsMaterial({
-      color: 0x38bdf8,
-      size: 0.28,
+    const floodParticleData: FloodParticleData[] = [];
+
+    // Distribute particles across the 4-tier path so flow is immediately seamless
+    for (let i = 0; i < floodParticleCount; i++) {
+      const pData: FloodParticleData = {
+        progress: Math.random(),
+        speed: 0.0016 + Math.random() * 0.0026,
+        angle: Math.random() * Math.PI * 2,
+        radialJitter: (Math.random() - 0.5) * 0.7,
+        swirlMultiplier: 1.2 + Math.random() * 1.5,
+        phaseOffset: Math.random() * Math.PI * 2,
+        jitterSeed: Math.random() * 100
+      };
+      floodParticleData.push(pData);
+
+      floodPositions[i * 3] = 0;
+      floodPositions[i * 3 + 1] = 0;
+      floodPositions[i * 3 + 2] = 0;
+
+      floodColors[i * 3] = 0.35;
+      floodColors[i * 3 + 1] = 0.70;
+      floodColors[i * 3 + 2] = 0.95;
+    }
+
+    floodGeoP.setAttribute('position', new THREE.BufferAttribute(floodPositions, 3));
+    floodGeoP.setAttribute('color', new THREE.BufferAttribute(floodColors, 3));
+
+    const floodMatP = new THREE.PointsMaterial({
+      size: 0.34,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.8,
-      blending: THREE.AdditiveBlending
+      opacity: 0.88,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
-    const waterParticles = new THREE.Points(waterGeoP, waterMatP);
-    townGroup.add(waterParticles);
+    const floodWaterParticles = new THREE.Points(floodGeoP, floodMatP);
+    townGroup.add(floodWaterParticles);
 
     // B. Warm Convection Updraft Particles from Chimneys
     const airParticleCount = 300;
@@ -1053,25 +1166,166 @@ export default function ThreeDModelMap() {
       });
 
       // 4. Animate Water Ripple in Baoli
-      waterMesh.position.y = -6.35 + Math.sin(time * 1.6) * 0.04;
+      const isRaining = animFlagsRef.current.isRaining;
+      const rainIntensity = animFlagsRef.current.rainIntensity;
+      waterMesh.position.y = isRaining 
+        ? -6.30 + Math.sin(time * 2.8) * 0.06 
+        : -6.35 + Math.sin(time * 1.6) * 0.04;
 
-      // 5. Particle Updates (Infiltration & Chimney Convection)
-      if (animFlagsRef.current.showFlows) {
-        // Water drops down into aquifer
-        const wPositions = waterGeoP.attributes.position.array as Float32Array;
-        for (let i = 0; i < waterParticleCount; i++) {
-          wPositions[i * 3 + 1] -= waterSpeed[i];
-          if (wPositions[i * 3 + 1] < -14.5) {
-            wPositions[i * 3 + 1] = 0.2;
-            const rad = Math.random() * 7.5;
-            const ang = Math.random() * Math.PI * 2;
-            wPositions[i * 3] = Math.cos(ang) * rad;
-            wPositions[i * 3 + 2] = Math.sin(ang) * rad;
+      // 5. Update Subterranean Floodwater Filtration Particles
+      const showFlows = animFlagsRef.current.showFlows;
+      if (showFlows || isRaining) {
+        floodWaterParticles.visible = true;
+        const rateMultiplier = isRaining 
+          ? (rainIntensity === 'cloudburst' ? 2.6 : 1.6) 
+          : 0.65;
+        
+        const targetOpacity = isRaining ? 0.95 : 0.45;
+        const targetSize = isRaining ? 0.36 : 0.26;
+        floodMatP.opacity = THREE.MathUtils.lerp(floodMatP.opacity, targetOpacity, 0.08);
+        floodMatP.size = THREE.MathUtils.lerp(floodMatP.size, targetSize, 0.08);
+
+        const posAttr = floodGeoP.attributes.position.array as Float32Array;
+        const colAttr = floodGeoP.attributes.color.array as Float32Array;
+
+        for (let i = 0; i < floodParticleCount; i++) {
+          const p = floodParticleData[i];
+
+          // Advance particle along the 4-tier filtration lifecycle
+          p.progress += p.speed * rateMultiplier;
+          if (p.progress >= 1.0) {
+            p.progress = 0.0;
+            p.angle = Math.random() * Math.PI * 2;
+            p.radialJitter = (Math.random() - 0.5) * 0.7;
           }
-        }
-        waterGeoP.attributes.position.needsUpdate = true;
 
-        // Warm air updraft out of chimneys
+          let px = 0;
+          let py = 0;
+          let pz = 0;
+          let cr = 0.35;
+          let cg = 0.70;
+          let cb = 0.95;
+
+          const prog = p.progress;
+
+          if (prog < 0.22) {
+            // ==============================================
+            // TIER 1: SURFACE BIOSWALES & RUNOFF INFLOW (y: 0.08 -> -0.15, r: 14.5 -> 9.6)
+            // ==============================================
+            const t = prog / 0.22;
+            const r = (14.2 - (t * 4.6)) + (p.radialJitter * (1.0 - t) * 1.5);
+            const curAng = p.angle + (t * 0.4);
+            px = Math.cos(curAng) * r;
+            pz = Math.sin(curAng) * r;
+            py = 0.08 - (t * 0.23) + Math.sin(time * 8 + p.phaseOffset) * 0.02;
+
+            // Cloudy turbid runoff stormwater
+            cr = 0.38;
+            cg = 0.65;
+            cb = 0.96;
+          } else if (prog < 0.48) {
+            // ==============================================
+            // TIER 2: STEPPED BAOLI CASCADES & TERRACE AERATION (y: -0.15 -> -6.35, r: 9.6 -> 2.4)
+            // ==============================================
+            const t = (prog - 0.22) / 0.26;
+            const stepCount = 7;
+            const stepIdx = Math.floor(t * stepCount);
+            const subStepT = (t * stepCount) - stepIdx;
+            
+            // Stepped parabolic drop down sandstone terraces
+            const baseStepY = -0.15 - (stepIdx * 0.88);
+            py = baseStepY - (subStepT * subStepT * 0.88);
+            
+            const r = (9.6 - (t * 7.2)) + Math.sin(subStepT * Math.PI) * 0.18 + (p.radialJitter * 0.25);
+            const curAng = p.angle + (t * p.swirlMultiplier * 2.2);
+            px = Math.cos(curAng) * r;
+            pz = Math.sin(curAng) * r;
+
+            // Aerated cascading water with active spray
+            cr = 0.22;
+            cg = 0.78;
+            cb = 0.98;
+          } else if (prog < 0.62) {
+            // ==============================================
+            // TIER 3: CENTRAL CATCHMENT POOL & SILT TRAP VORTEX (y: -6.35 -> -7.4, r: 2.4 -> 0.7)
+            // ==============================================
+            const t = (prog - 0.48) / 0.14;
+            const r = (2.4 * (1.0 - t)) + (0.7 * t) + (p.radialJitter * 0.15);
+            const curAng = p.angle + (2.2 * p.swirlMultiplier) + (t * 5.0);
+            px = Math.cos(curAng) * r;
+            pz = Math.sin(curAng) * r;
+            py = -6.35 - (t * 1.05) + Math.sin(time * 5 + p.phaseOffset) * 0.03;
+
+            // Settled pool water
+            cr = 0.15;
+            cg = 0.84;
+            cb = 0.98;
+          } else if (prog < 0.84) {
+            // ==============================================
+            // TIER 4A & 4B: SUBTERRANEAN STRATA PERCOLATION (y: -7.4 -> -12.4, porous tortuosity)
+            // ==============================================
+            const t = (prog - 0.62) / 0.22;
+            py = -7.4 - (t * 5.0);
+            
+            // Lateral percolation through sand & carbon matrix
+            const bedSpread = 0.7 + Math.sin(t * Math.PI) * 1.6 + (p.radialJitter * 0.4);
+            const tortuosityX = Math.sin(time * 2.5 + p.jitterSeed) * 0.18;
+            const tortuosityZ = Math.cos(time * 2.5 + p.jitterSeed) * 0.18;
+            
+            const curAng = p.angle + (t * 1.5);
+            px = Math.cos(curAng) * bedSpread + tortuosityX;
+            pz = Math.sin(curAng) * bedSpread + tortuosityZ;
+
+            // Purified transition: azure -> cyan -> bright turquoise
+            cr = THREE.MathUtils.lerp(0.12, 0.25, t);
+            cg = THREE.MathUtils.lerp(0.88, 0.98, t);
+            cb = THREE.MathUtils.lerp(0.92, 0.88, t);
+          } else {
+            // ==============================================
+            // TIER 4C: DEEP BORE RECHARGE & REGIONAL AQUIFER PLUME (y: -12.4 -> -15.2, r: 0.6 -> 5.8)
+            // ==============================================
+            const t = (prog - 0.84) / 0.16;
+            
+            if (t < 0.35) {
+              // High-speed jet down central bore shaft
+              const boreT = t / 0.35;
+              py = -12.4 - (boreT * 1.8);
+              const r = 0.45 + (p.radialJitter * 0.2);
+              const curAng = p.angle + (boreT * 6.0);
+              px = Math.cos(curAng) * r;
+              pz = Math.sin(curAng) * r;
+            } else {
+              // Blossom outward into unconfined aquifer plume
+              const plumeT = (t - 0.35) / 0.65;
+              py = -14.2 + Math.sin(plumeT * Math.PI) * 0.6 + (p.radialJitter * 0.3);
+              const plumeR = 0.5 + (plumeT * 5.4) + (p.radialJitter * 0.4);
+              px = Math.cos(p.angle) * plumeR;
+              pz = Math.sin(p.angle) * plumeR;
+            }
+
+            // Crystal pure, highly luminescent aquifer recharge water
+            cr = 0.35;
+            cg = 0.98;
+            cb = 1.00;
+          }
+
+          posAttr[i * 3] = px;
+          posAttr[i * 3 + 1] = py;
+          posAttr[i * 3 + 2] = pz;
+
+          colAttr[i * 3] = cr;
+          colAttr[i * 3 + 1] = cg;
+          colAttr[i * 3 + 2] = cb;
+        }
+
+        floodGeoP.attributes.position.needsUpdate = true;
+        floodGeoP.attributes.color.needsUpdate = true;
+      } else {
+        floodWaterParticles.visible = false;
+      }
+
+      // Warm air updraft out of chimneys
+      if (animFlagsRef.current.showFlows) {
         const aPositions = airGeoP.attributes.position.array as Float32Array;
         for (let i = 0; i < airParticleCount; i++) {
           aPositions[i * 3 + 1] += airSpeed[i];
@@ -1090,9 +1344,10 @@ export default function ThreeDModelMap() {
       // 6. Monsoon Rain Animation
       if (animFlagsRef.current.isRaining) {
         rainParticles.visible = true;
+        const rainMultiplier = animFlagsRef.current.rainIntensity === 'cloudburst' ? 1.4 : 0.8;
         const rPositions = rainGeoP.attributes.position.array as Float32Array;
         for (let i = 0; i < rainCount; i++) {
-          rPositions[i * 3 + 1] -= rainSpeed[i];
+          rPositions[i * 3 + 1] -= rainSpeed[i] * rainMultiplier;
           if (rPositions[i * 3 + 1] < 0) {
             rPositions[i * 3 + 1] = 30 + Math.random() * 5;
           }
@@ -1429,16 +1684,32 @@ export default function ThreeDModelMap() {
               </button>
             )}
 
+            {/* Quick Action to Inspect Subterranean Filtration */}
+            {isRaining && (
+              <button
+                onClick={() => handleSetPreset('underground')}
+                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-sky-950/85 text-sky-300 border border-sky-500/40 hover:bg-sky-900 transition-all pointer-events-auto shadow-lg"
+                title="Zoom camera directly into subterranean filtration tiers cutaway"
+              >
+                <Droplets className="w-3.5 h-3.5 text-sky-400 animate-bounce" />
+                <span>Inspect Subterranean Filtration</span>
+              </button>
+            )}
+
             {/* Live Atmosphere & Environment Controls */}
             <div className="flex items-center space-x-2 bg-black/65 backdrop-blur-md p-1.5 rounded-xl border border-white/10 pointer-events-auto text-xs">
 
               {/* Monsoon Cloudburst Rain Toggle */}
               <button
-                onClick={() => setIsRaining(!isRaining)}
+                onClick={() => {
+                  const nextRain = !isRaining;
+                  setIsRaining(nextRain);
+                  if (nextRain) setShowRainFiltrationInfo(true);
+                }}
                 className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1.5 ${
-                  isRaining ? 'bg-sky-900/80 text-sky-200 border border-sky-700/60 font-semibold' : 'text-stone-400 hover:text-stone-200'
+                  isRaining ? 'bg-sky-900/80 text-sky-200 border border-sky-700/60 font-semibold shadow-sm' : 'text-stone-400 hover:text-stone-200'
                 }`}
-                title="Simulate Monsoon Cloudburst Rainfall"
+                title="Simulate Monsoon Cloudburst Rainfall & Captured Floodwater Infiltration"
               >
                 <CloudRain className={`w-3 h-3 ${isRaining ? 'text-sky-300 animate-bounce' : 'text-stone-400'}`} />
                 <span>Rain: {isRaining ? 'ON' : 'OFF'}</span>
@@ -1512,80 +1783,195 @@ export default function ThreeDModelMap() {
           {/* WebGL 3D Canvas Mount Point */}
           <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
-          {/* FLOATING SHOWCASE: Sanctuary Energy-Free Lighting System (Active when Night preset is selected) */}
-          {isNight && (
-            <div className="absolute top-20 right-4 z-20 pointer-events-auto max-w-sm w-full sm:w-80 bg-black/85 backdrop-blur-md border border-teal-500/30 p-4 rounded-2xl shadow-2xl text-xs text-stone-200 animate-fadeIn">
-              <div className="flex items-center justify-between pb-2 border-b border-teal-500/20 mb-2.5">
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 rounded-lg bg-teal-500/20 border border-teal-400/40 flex items-center justify-center text-teal-300">
-                    <Moon className="w-3.5 h-3.5" />
+          {/* FLOATING HUD CARDS (Night Luminescence & Rain Filtration) */}
+          <div className="absolute top-20 right-4 z-20 pointer-events-auto flex flex-col gap-3 items-end max-w-sm w-full sm:w-80 max-h-[calc(100%-6rem)] overflow-y-auto pr-0.5">
+            
+            {/* FLOATING SHOWCASE 1: Sanctuary Energy-Free Lighting System (Active when Night preset is selected) */}
+            {isNight && (
+              <div className="w-full bg-black/85 backdrop-blur-md border border-teal-500/30 p-4 rounded-2xl shadow-2xl text-xs text-stone-200 animate-fadeIn">
+                <div className="flex items-center justify-between pb-2 border-b border-teal-500/20 mb-2.5">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 rounded-lg bg-teal-500/20 border border-teal-400/40 flex items-center justify-center text-teal-300">
+                      <Moon className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-white text-xs leading-none">
+                        Sanctuary Night Luminescence
+                      </h5>
+                      <span className="text-[10px] text-teal-400 font-mono">
+                        100% Zero-Grid Energy
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h5 className="font-bold text-white text-xs leading-none">
-                      Sanctuary Night Luminescence
-                    </h5>
-                    <span className="text-[10px] text-teal-400 font-mono">
-                      100% Zero-Grid Energy
+                  <div className="flex items-center space-x-1.5">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/50">
+                      0.00 kWh
                     </span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/50">
-                    0.00 kWh
-                  </span>
-                  <button
-                    onClick={() => setShowNightLightingInfo(!showNightLightingInfo)}
-                    className="p-1 text-stone-400 hover:text-white rounded transition-colors"
-                    title={showNightLightingInfo ? "Minimize details" : "Expand details"}
-                  >
-                    <Info className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {showNightLightingInfo && (
-                <div className="space-y-2 text-[11px]">
-                  <div className="flex items-start space-x-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1 flex-shrink-0 animate-pulse" />
-                    <div>
-                      <strong className="text-emerald-300">Photoluminescent Step Treads:</strong>
-                      <span className="text-stone-300 ml-1">
-                        7 concentric sandstone terraces inlaid with strontium aluminate mineral aggregate. Absorbs UV by day; radiates 12+ hours of emerald-cyan pathway glow.
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-1 flex-shrink-0 animate-pulse" />
-                    <div>
-                      <strong className="text-sky-300">Optical Moon-Shaft Collimator:</strong>
-                      <span className="text-stone-300 ml-1">
-                        Mirror-lined parabolic conduits atop the 8 cooling chimneys channel lunar starlight directly onto the central water reservoir.
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 flex-shrink-0" />
-                    <div>
-                      <strong className="text-amber-300">Deepak-Gokh Amber Niches:</strong>
-                      <span className="text-stone-300 ml-1">
-                        Recessed wall alcoves with natural phosphorescent crystals cast warm amber wayfinding beacons across the colonnade.
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-stone-400">
-                    <span className="text-emerald-400 font-semibold">✓ Dark-Sky Certified</span>
                     <button
-                      onClick={() => handleSetPreset('stepwell')}
-                      className="text-[#E07A5F] hover:text-white font-sans font-medium transition-colors underline"
+                      onClick={() => setShowNightLightingInfo(!showNightLightingInfo)}
+                      className="p-1 text-stone-400 hover:text-white rounded transition-colors"
+                      title={showNightLightingInfo ? "Minimize details" : "Expand details"}
                     >
-                      Focus Baoli Core →
+                      <Info className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+
+                {showNightLightingInfo && (
+                  <div className="space-y-2 text-[11px]">
+                    <div className="flex items-start space-x-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1 flex-shrink-0 animate-pulse" />
+                      <div>
+                        <strong className="text-emerald-300">Photoluminescent Step Treads:</strong>
+                        <span className="text-stone-300 ml-1">
+                          7 concentric sandstone terraces inlaid with strontium aluminate mineral aggregate. Radiates 12+ hours of emerald-cyan glow.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-1 flex-shrink-0 animate-pulse" />
+                      <div>
+                        <strong className="text-sky-300">Optical Moon-Shaft Collimator:</strong>
+                        <span className="text-stone-300 ml-1">
+                          Mirror-lined conduits atop the 8 cooling chimneys channel natural lunar light directly onto the subterranean water reservoir.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 flex-shrink-0" />
+                      <div>
+                        <strong className="text-amber-300">Deepak-Gokh Amber Niches:</strong>
+                        <span className="text-stone-300 ml-1">
+                          Recessed wall alcoves with natural phosphorescent minerals cast warm amber wayfinding beacons across the colonnade.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-stone-400">
+                      <span className="text-emerald-400 font-semibold">✓ Dark-Sky Certified</span>
+                      <button
+                        onClick={() => handleSetPreset('stepwell')}
+                        className="text-[#E07A5F] hover:text-white font-sans font-medium transition-colors underline"
+                      >
+                        Focus Baoli Core →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* FLOATING SHOWCASE 2: Subterranean Floodwater Filtration & Aquifer Recharge (Active during Rain simulations) */}
+            {isRaining && (
+              <div className="w-full bg-black/85 backdrop-blur-md border border-sky-500/35 p-4 rounded-2xl shadow-2xl text-xs text-stone-200 animate-fadeIn">
+                <div className="flex items-center justify-between pb-2 border-b border-sky-500/20 mb-2.5">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-300">
+                      <Droplets className="w-3.5 h-3.5 animate-bounce" />
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-white text-xs leading-none">
+                        Subterranean Filtration
+                      </h5>
+                      <span className="text-[10px] text-sky-400 font-mono">
+                        4-Tier Gravity Purification
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-950 text-sky-300 border border-sky-700/50">
+                      {rainIntensity === 'cloudburst' ? '2,800 L/min' : '1,200 L/min'}
+                    </span>
+                    <button
+                      onClick={() => setShowRainFiltrationInfo(!showRainFiltrationInfo)}
+                      className="p-1 text-stone-400 hover:text-white rounded transition-colors"
+                      title={showRainFiltrationInfo ? "Minimize details" : "Expand details"}
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Storm Rate Selector */}
+                <div className="flex items-center justify-between mb-2.5 bg-stone-900/90 p-1 rounded-xl border border-white/10 text-[10px] font-mono">
+                  <span className="text-stone-400 px-1.5">Storm Rate:</span>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setRainIntensity('moderate')}
+                      className={`px-2 py-0.5 rounded-lg transition-all ${
+                        rainIntensity === 'moderate'
+                          ? 'bg-sky-800 text-white font-bold'
+                          : 'text-stone-400 hover:text-white'
+                      }`}
+                    >
+                      25 mm/h
+                    </button>
+                    <button
+                      onClick={() => setRainIntensity('cloudburst')}
+                      className={`px-2 py-0.5 rounded-lg transition-all ${
+                        rainIntensity === 'cloudburst'
+                          ? 'bg-sky-600 text-white font-bold shadow-sm'
+                          : 'text-stone-400 hover:text-white'
+                      }`}
+                    >
+                      100 mm/h (Cloudburst)
+                    </button>
+                  </div>
+                </div>
+
+                {showRainFiltrationInfo && (
+                  <div className="space-y-2 text-[11px]">
+                    <div className="flex items-start space-x-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-1 flex-shrink-0 animate-pulse" />
+                      <div>
+                        <strong className="text-sky-300">Tier 1 (Surface Grade 0.0m):</strong>
+                        <span className="text-stone-300 ml-1">
+                          Vegetated bioswales screen suspended debris and coarse sand runoff before spilling into the baoli funnel.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1 flex-shrink-0 animate-pulse" />
+                      <div>
+                        <strong className="text-cyan-300">Tier 2 & 3 (-0.5m to -6.4m):</strong>
+                        <span className="text-stone-300 ml-1">
+                          7 concentric sandstone terraces dissipate kinetic turbulence, aerate the stormwater, and clarify in the central vortex settling pool.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 mt-1 flex-shrink-0 animate-pulse" />
+                      <div>
+                        <strong className="text-teal-300">Tier 4A & 4B (-7.4m to -12.4m Strata):</strong>
+                        <span className="text-stone-300 ml-1">
+                          Capillary percolation through graded silica sand, activated carbon geotextile, and volcanic pumice strips dissolved impurities.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1 flex-shrink-0 animate-pulse" />
+                      <div>
+                        <strong className="text-emerald-300">Tier 4C (-12.4m to -15.8m Deep Aquifer):</strong>
+                        <span className="text-stone-300 ml-1">
+                          Central high-pressure bore injects potable-grade recharge into unconfined bedrock aquifer table.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-stone-400">
+                      <span className="text-sky-400 font-semibold">✓ 100% Zero-Pump Gravity Flow</span>
+                      <button
+                        onClick={() => handleSetPreset('underground')}
+                        className="text-[#E07A5F] hover:text-white font-sans font-medium transition-colors underline"
+                      >
+                        Inspect Strata Cutaway →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* BOTTOM-LEFT: Live Town Activity Feed */}
           <div className="absolute bottom-4 left-4 z-20 pointer-events-auto bg-black/75 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 text-xs text-stone-300 max-w-xs shadow-xl hidden sm:block">
