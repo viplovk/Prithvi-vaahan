@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Download, Sparkles, Menu, X, Droplets, ThermometerSnowflake, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Download, Sparkles, Menu, X, Droplets, Play, Pause, Compass, ArrowDown } from 'lucide-react';
 import { PROJECT_INFO } from '../data/projectData';
 
 interface NavbarProps {
@@ -10,6 +10,8 @@ interface NavbarProps {
 export default function Navbar({ onOpenPitch, onScrollToSimulation }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAutoScrolling, setIsAutoScrolling] = useState(false);
+  const autoScrollRafRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,9 +21,58 @@ export default function Navbar({ onOpenPitch, onScrollToSimulation }: NavbarProp
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Automatic slow-scroll engine for Pitch Deck presentation mode
+  useEffect(() => {
+    if (!isAutoScrolling) {
+      if (autoScrollRafRef.current) {
+        cancelAnimationFrame(autoScrollRafRef.current);
+        autoScrollRafRef.current = null;
+      }
+      return;
+    }
+
+    // Scroll speed in pixels per frame (~0.95px per frame = smooth ~57px/sec reading pace)
+    const scrollSpeed = 0.95;
+
+    const performScroll = () => {
+      // Check if page reached the bottom
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (window.scrollY >= maxScroll - 5) {
+        setIsAutoScrolling(false);
+        return;
+      }
+
+      window.scrollBy({ top: scrollSpeed, left: 0, behavior: 'auto' });
+      autoScrollRafRef.current = requestAnimationFrame(performScroll);
+    };
+
+    autoScrollRafRef.current = requestAnimationFrame(performScroll);
+
+    // Pause on Escape key
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsAutoScrolling(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      if (autoScrollRafRef.current) {
+        cancelAnimationFrame(autoScrollRafRef.current);
+        autoScrollRafRef.current = null;
+      }
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAutoScrolling]);
+
+  const toggleAutoScroll = () => {
+    setIsAutoScrolling((prev) => !prev);
+  };
+
   const navLinks = [
     { label: "Twin Crisis", href: "#twin-crisis" },
     { label: "4-Tier Architecture", href: "#architecture" },
+    { label: "3D Model Map", href: "#3d-map" },
     { label: "Impact Calculator", href: "#calculator" },
     { label: "Gemini & Rubric", href: "#gemini-rubric" },
     { label: "Execution", href: "#execution" },
@@ -30,6 +81,9 @@ export default function Navbar({ onOpenPitch, onScrollToSimulation }: NavbarProp
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
     setMobileMenuOpen(false);
+    if (isAutoScrolling) {
+      setIsAutoScrolling(false);
+    }
     const target = document.querySelector(href);
     if (target) {
       target.scrollIntoView({ behavior: 'smooth' });
@@ -94,7 +148,30 @@ export default function Navbar({ onOpenPitch, onScrollToSimulation }: NavbarProp
           </nav>
 
           {/* Right Action CTA Buttons */}
-          <div className="hidden sm:flex items-center space-x-2.5">
+          <div className="hidden sm:flex items-center space-x-2">
+            {/* Auto-Scroll Presentation Toggle Button */}
+            <button
+              onClick={toggleAutoScroll}
+              className={`inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                isAutoScrolling
+                  ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500/60 shadow-sm shadow-emerald-500/20'
+                  : 'bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white border-stone-700'
+              }`}
+              title={isAutoScrolling ? "Pause Presentation Auto-Scroll (Press Esc)" : "Start Automatic Pitch Deck Slow-Scroll"}
+            >
+              {isAutoScrolling ? (
+                <>
+                  <Pause className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400 animate-pulse" />
+                  <span>Auto-Scroll: ON</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 text-[#E07A5F]" />
+                  <span>Auto-Scroll Deck</span>
+                </>
+              )}
+            </button>
+
             <button
               onClick={onScrollToSimulation}
               className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 transition-all cursor-pointer"
@@ -112,7 +189,22 @@ export default function Navbar({ onOpenPitch, onScrollToSimulation }: NavbarProp
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center space-x-2">
+          <div className="flex md:hidden items-center space-x-1.5">
+            <button
+              onClick={toggleAutoScroll}
+              className={`p-2 rounded-lg border transition-colors ${
+                isAutoScrolling
+                  ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/60'
+                  : 'bg-stone-800 text-stone-300 border-stone-700'
+              }`}
+              title={isAutoScrolling ? "Pause Auto-Scroll" : "Auto-Scroll Deck"}
+            >
+              {isAutoScrolling ? (
+                <Pause className="w-4 h-4 fill-emerald-400 text-emerald-400" />
+              ) : (
+                <Play className="w-4 h-4 text-[#E07A5F]" />
+              )}
+            </button>
             <button
               onClick={onOpenPitch}
               className="p-2 rounded-lg bg-[#C85A32] text-white"
@@ -152,6 +244,29 @@ export default function Navbar({ onOpenPitch, onScrollToSimulation }: NavbarProp
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
+                toggleAutoScroll();
+              }}
+              className={`w-full flex items-center justify-center space-x-2 py-2.5 rounded-lg border text-sm font-medium ${
+                isAutoScrolling
+                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/50'
+                  : 'bg-stone-800 text-stone-200 border-stone-700'
+              }`}
+            >
+              {isAutoScrolling ? (
+                <>
+                  <Pause className="w-4 h-4 text-emerald-400 fill-emerald-400" />
+                  <span>Pause Pitch Deck Auto-Scroll</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 text-[#E07A5F]" />
+                  <span>Enable Auto-Scroll Presentation Mode</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
                 onScrollToSimulation();
               }}
               className="w-full flex items-center justify-center space-x-2 py-2.5 rounded-lg bg-stone-800 text-stone-200 text-sm font-medium"
@@ -170,6 +285,24 @@ export default function Navbar({ onOpenPitch, onScrollToSimulation }: NavbarProp
               <span>Download Competition Pitch Sheet</span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Floating Auto-Scroll Control Pill when active */}
+      {isAutoScrolling && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center space-x-3 px-4 py-2.5 rounded-full bg-[#141C18]/95 border border-emerald-500/60 shadow-2xl backdrop-blur-md text-xs text-white">
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="font-mono text-emerald-300 font-medium">Pitch Auto-Scroll Active</span>
+          <button
+            onClick={toggleAutoScroll}
+            className="px-2.5 py-1 rounded-full bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 text-[11px] font-semibold transition-colors flex items-center space-x-1 cursor-pointer"
+          >
+            <Pause className="w-3 h-3 fill-emerald-300" />
+            <span>Pause</span>
+          </button>
         </div>
       )}
     </header>

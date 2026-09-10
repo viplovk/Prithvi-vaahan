@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Droplets, Thermometer, Wind, ZapOff, ShieldCheck, Compass, Sparkles } from 'lucide-react';
+import { ArrowRight, Droplets, Thermometer, Wind, ZapOff, ShieldCheck, Compass, Sparkles, Box } from 'lucide-react';
 import { PROJECT_INFO } from '../data/projectData';
 
 interface HeroProps {
@@ -52,21 +52,29 @@ export default function Hero({ onExplore, onSimulation }: HeroProps) {
           </p>
 
           {/* Dual Call-to-Actions */}
-          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <button
               onClick={onExplore}
-              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-7 py-3.5 rounded-xl bg-[#C85A32] hover:bg-[#B34728] text-white font-semibold text-sm shadow-xl shadow-[#C85A32]/30 transition-all hover:translate-y-[-1px] cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-xl bg-[#C85A32] hover:bg-[#B34728] text-white font-semibold text-sm shadow-xl shadow-[#C85A32]/30 transition-all hover:translate-y-[-1px] cursor-pointer"
             >
               <span>Explore the Commons</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
+            <a
+              href="#3d-map"
+              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-xl bg-[#1B2721] hover:bg-[#23322b] text-stone-100 border border-[#C85A32]/40 font-semibold text-sm transition-all hover:border-[#E07A5F] hover:translate-y-[-1px] cursor-pointer shadow-md"
+            >
+              <Box className="w-4 h-4 text-[#E07A5F]" />
+              <span>3D Model Map</span>
+            </a>
+
             <button
               onClick={onSimulation}
-              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-7 py-3.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 text-stone-100 border border-stone-700 font-semibold text-sm transition-all hover:border-[#38BDF8]/50 hover:translate-y-[-1px] cursor-pointer shadow-md"
+              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 text-stone-200 border border-stone-700 font-semibold text-sm transition-all hover:border-[#38BDF8]/50 hover:translate-y-[-1px] cursor-pointer shadow-md"
             >
               <Droplets className="w-4 h-4 text-[#38BDF8]" />
-              <span>View Live Simulation</span>
+              <span>View Simulation</span>
             </button>
           </div>
         </div>

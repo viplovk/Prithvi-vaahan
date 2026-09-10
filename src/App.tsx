@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import TwinCrisis from './components/TwinCrisis';
 import ArchitectureCutaway from './components/ArchitectureCutaway';
+import ThreeDModelMap from './components/ThreeDModelMap';
 import CommunityImpactCalculator from './components/CommunityImpactCalculator';
 import GeminiInnovation from './components/GeminiInnovation';
 import Footer from './components/Footer';
@@ -46,7 +47,10 @@ export default function App() {
         {/* 3. The PrithviVahini Architecture: Interactive 4-Tier Cutaway */}
         <ArchitectureCutaway />
 
-        {/* 4. Interactive Community Impact Calculator */}
+        {/* 4. Interactive 3D Model Map & Geothermal Flow Viewport */}
+        <ThreeDModelMap />
+
+        {/* 5. Interactive Community Impact Calculator */}
         <CommunityImpactCalculator />
 
         {/* 5. Google Gemini Integration & 5-Part Rubric Scoring Breakdown */}
