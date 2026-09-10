@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Flame, Droplets, AlertTriangle, ArrowRight, Truck, Sun, Building2, CloudRain } from 'lucide-react';
+import { Flame, Droplets, AlertTriangle, ArrowRight, Truck, Sun, Building2, CloudRain, Waves } from 'lucide-react';
 import { CORE_PROBLEM } from '../data/projectData';
+import HydrologicalSwellSimulator from './HydrologicalSwellSimulator';
 
 export default function TwinCrisis() {
-  const [activeTab, setActiveTab] = useState<'both' | 'heat' | 'flood'>('both');
+  const [activeTab, setActiveTab] = useState<'both' | 'heat' | 'flood' | 'swell-engine'>('both');
   const [asphaltCoverage, setAsphaltCoverage] = useState(75); // percent
 
   // Calculated effects based on simulated urbanization
@@ -60,10 +61,29 @@ export default function TwinCrisis() {
             >
               Crisis B: Flood-to-Drought
             </button>
+            <button
+              onClick={() => setActiveTab('swell-engine')}
+              className={`px-4 py-1.5 rounded-lg font-medium transition-all flex items-center space-x-1.5 ${
+                activeTab === 'swell-engine'
+                  ? 'bg-cyan-800 text-white shadow-sm font-semibold'
+                  : 'text-stone-400 hover:text-white'
+              }`}
+            >
+              <Waves className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Wave & Swell Physics</span>
+            </button>
           </div>
         </div>
 
+        {/* Focused Mode: Direct Wave & Swell Simulation */}
+        {activeTab === 'swell-engine' && (
+          <div className="mb-12">
+            <HydrologicalSwellSimulator />
+          </div>
+        )}
+
         {/* Side-by-Side Comparative Cards */}
+        {activeTab !== 'swell-engine' && (
         <div className={`grid gap-6 lg:gap-8 items-stretch ${
           activeTab === 'both' 
             ? 'grid-cols-1 md:grid-cols-2' 
@@ -192,13 +212,23 @@ export default function TwinCrisis() {
                 </div>
               </div>
 
-              <div className="mt-5 sm:mt-6 pt-3.5 sm:pt-4 border-t border-sky-900/30 text-xs text-sky-200/90 font-medium">
-                ⚠️ Structural Failure: Standalone small recharge pits silt up within 2 seasons, lacking the deep sedimentation volume to capture intense cloudbursts.
+              <div className="mt-5 sm:mt-6 pt-3.5 sm:pt-4 border-t border-sky-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-sky-200/90 font-medium">
+                <span>⚠️ Structural Failure: Standalone small recharge pits silt up within 2 seasons, lacking deep sedimentation volume.</span>
+                <button
+                  onClick={() => {
+                    setActiveTab('swell-engine');
+                  }}
+                  className="inline-flex items-center space-x-1.5 text-xs text-sky-300 hover:text-white font-semibold font-mono underline shrink-0 transition-colors"
+                >
+                  <Waves className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Open 3D Swell Engine →</span>
+                </button>
               </div>
             </div>
           )}
 
         </div>
+        )}
 
         {/* Interactive Urban Belt Imperviousness Simulator Widget */}
         <div className="mt-12 rounded-2xl bg-stone-900/90 border border-stone-800 p-6 sm:p-8">
@@ -271,6 +301,13 @@ export default function TwinCrisis() {
             </div>
           </div>
         </div>
+
+        {/* Originkit Ocean Swell: Hydrological Swell & Wave Physics Simulator */}
+        {activeTab !== 'swell-engine' && (
+          <div className="mt-12" id="swell-simulator">
+            <HydrologicalSwellSimulator />
+          </div>
+        )}
 
       </div>
     </section>

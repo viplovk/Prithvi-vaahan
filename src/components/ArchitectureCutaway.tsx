@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Wind, Droplets, ArrowDown, ShieldCheck, CheckCircle2, ChevronRight, Trees, Compass, Thermometer } from 'lucide-react';
+import { Layers, Wind, Droplets, ArrowDown, ShieldCheck, CheckCircle2, ChevronRight, Trees, Compass, Thermometer, Waves } from 'lucide-react';
 import { ARCHITECTURE_TIERS } from '../data/projectData';
 
 export default function ArchitectureCutaway() {
@@ -196,6 +196,35 @@ export default function ArchitectureCutaway() {
                   ))}
                 </div>
               </div>
+
+              {/* Subterranean Reservoir Fluid Mechanics Action Card */}
+              {activeTier.id === 'tier-4' && (
+                <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-cyan-950/70 to-emerald-950/70 border border-cyan-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center shrink-0 border border-cyan-400/30">
+                      <Waves className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-white">
+                        Simulate Deep Aquifer Basin Fluid Swell Dynamics
+                      </h5>
+                      <span className="text-[11px] text-cyan-300/90 font-mono">
+                        Originkit Ocean Swell • Raymarched WebGL Engine
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const elem = document.getElementById('swell-simulator');
+                      if (elem) elem.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition-all shadow-md shrink-0 flex items-center justify-center space-x-1"
+                  >
+                    <span>Launch Swell Engine</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              )}
 
             </div>
 
