@@ -1,0 +1,6 @@
+{
+  "name": "PrithviVahini: Subterranean Sponge Commons",
+  "description": "Zero-power urban climate sanctuary and decentralized floodwater aquifer recharge stepwell commons.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
