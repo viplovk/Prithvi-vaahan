@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import DitherReveal from './originkit/ui/dither-reveal';
-import { ArrowDown, Sparkles, HandHeart, Eye, Compass } from 'lucide-react';
+import PixelateComponent from './originkit/ui/pixelate-image';
+import { ArrowDown, Sparkles, HandHeart, Eye, Sliders } from 'lucide-react';
 
 interface ScrollZoomPrologueProps {
   onEnter: () => void;
@@ -13,8 +13,25 @@ const BACKUP_HANDS_IMAGE = "https://images.unsplash.com/photo-1518495973542-4542
 export default function ScrollZoomPrologue({ onEnter }: ScrollZoomPrologueProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [manualZoom, setManualZoom] = useState(0);
-  const [isDitherActive, setIsDitherActive] = useState(true);
+  const [pixelMode, setPixelMode] = useState<'hover' | 'enter'>('hover');
+  const [intensity, setIntensity] = useState(18);
+  const [viewportSize, setViewportSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1440,
+    height: typeof window !== 'undefined' ? window.innerHeight : 900,
+  });
+
+  // Track viewport dimensions for responsive Pixelate canvas
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Track window scroll inside the prologue
   useEffect(() => {
@@ -33,11 +50,11 @@ export default function ScrollZoomPrologue({ onEnter }: ScrollZoomPrologueProps)
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Effective zoom combines scroll position and optional manual control
-  const effectiveZoom = Math.min(1, Math.max(0, scrollProgress > 0 ? scrollProgress : manualZoom));
-  const currentScale = 1 + effectiveZoom * 1.5; // zooms from 1.0 to 2.5x
-  const currentBlur = effectiveZoom * 3;
-  const overlayOpacity = Math.min(0.85, 0.2 + effectiveZoom * 0.7);
+  // Effective zoom combines scroll position
+  const effectiveZoom = scrollProgress;
+  const currentScale = 1 + effectiveZoom * 1.5; // zooms smoothly from 1.0 to 2.5x into the hands
+  const currentBlur = effectiveZoom * 2;
+  const overlayOpacity = Math.min(0.85, 0.15 + effectiveZoom * 0.7);
 
   const handleScrollDown = () => {
     const heroElem = document.getElementById('hero-section');
@@ -57,38 +74,28 @@ export default function ScrollZoomPrologue({ onEnter }: ScrollZoomPrologueProps)
       {/* Sticky presentation viewport */}
       <div className="sticky top-0 w-full h-screen overflow-hidden flex flex-col items-center justify-between p-4 sm:p-8">
         
-        {/* Background Visual: The Two Hands with Zoom effect and Dither Reveal */}
+        {/* Background Visual: The Two Hands with Originkit Pixelate Image Component and Zoom */}
         <div
-          className="absolute inset-0 w-full h-full pointer-events-none transition-transform duration-150 ease-out origin-center"
+          className="absolute inset-0 w-full h-full pointer-events-auto transition-transform duration-150 ease-out origin-center"
           style={{
             transform: `scale(${currentScale})`,
             filter: `blur(${currentBlur}px)`,
           }}
         >
-          {isDitherActive ? (
-            <div className="w-full h-full pointer-events-auto">
-              <DitherReveal
-                image={HANDS_IMAGE}
-                ditherStyle="bayer8"
-                dotSize={4}
-                revealRadius={180}
-                revealSoftness={40}
-                wave={true}
-                waveSpeed={50}
-                waveDensity={20}
-              />
-            </div>
-          ) : (
-            <img
-              src={HANDS_IMAGE}
-              alt="Two caring hands cupping water and soil"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover object-center"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = BACKUP_HANDS_IMAGE;
-              }}
-            />
-          )}
+          <PixelateComponent
+            image={HANDS_IMAGE}
+            imageWidth={viewportSize.width}
+            imageHeight={viewportSize.height}
+            intensity={intensity}
+            pixelateMode="depixelate"
+            animationMode={pixelMode}
+            hoverArea={120}
+            safeArea={10}
+            enterPosition="middle"
+            enterReplay="yes"
+            enterEase={{ duration: 1.2, ease: "easeOut" }}
+            style={{ width: "100%", height: "100%" }}
+          />
 
           {/* Vignette and Atmospheric Biophilic Tint */}
           <div
@@ -102,7 +109,7 @@ export default function ScrollZoomPrologue({ onEnter }: ScrollZoomPrologueProps)
         </div>
 
         {/* Top Header Badge in Prologue */}
-        <div className="relative z-20 w-full max-w-6xl mx-auto flex items-center justify-between pt-2 sm:pt-4">
+        <div className="relative z-20 w-full max-w-6xl mx-auto flex items-center justify-between pt-2 sm:pt-4 pointer-events-auto">
           <div className="flex items-center space-x-3">
             <span className="flex h-3 w-3 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E07A5F] opacity-75"></span>
@@ -113,19 +120,19 @@ export default function ScrollZoomPrologue({ onEnter }: ScrollZoomPrologueProps)
             </span>
           </div>
 
-          {/* Dither Shader Toggle & Direct Skip */}
+          {/* Pixelate Interactive Controls & Skip */}
           <div className="flex items-center space-x-2 sm:space-x-3 text-xs">
             <button
-              onClick={() => setIsDitherActive(!isDitherActive)}
-              className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md transition-all text-stone-200"
-              title="Toggle Originkit Dither Reveal Canvas Shader"
+              onClick={() => setPixelMode(pixelMode === 'hover' ? 'enter' : 'hover')}
+              className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md transition-all text-stone-200 cursor-pointer"
+              title="Toggle Hover Depixelation vs Auto Enter Reveal"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#E07A5F]" />
-              <span>Dither Canvas: {isDitherActive ? 'Active' : 'Photo'}</span>
+              <span>Pixel Mode: {pixelMode === 'hover' ? 'Hover Radial' : 'Auto Reveal'}</span>
             </button>
             <button
               onClick={handleScrollDown}
-              className="inline-flex items-center space-x-1.5 px-4 py-1.5 rounded-full bg-[#C85A32] hover:bg-[#B34728] text-white font-medium shadow-lg transition-all"
+              className="inline-flex items-center space-x-1.5 px-4 py-1.5 rounded-full bg-[#C85A32] hover:bg-[#B34728] text-white font-medium shadow-lg transition-all cursor-pointer"
             >
               <span>Enter Presentation</span>
               <ArrowDown className="w-3.5 h-3.5 animate-bounce" />
@@ -134,7 +141,7 @@ export default function ScrollZoomPrologue({ onEnter }: ScrollZoomPrologueProps)
         </div>
 
         {/* Center Typography Narrative: The Two Hands Motif */}
-        <div className="relative z-20 max-w-3xl text-center px-4 transition-all duration-300">
+        <div className="relative z-20 max-w-3xl text-center px-4 transition-all duration-300 pointer-events-auto">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-stone-300 mb-4">
             <HandHeart className="w-3.5 h-3.5 text-[#E07A5F]" />
             <span className="tracking-wide">Prithvi (Earth) & Vahini (Conduit of Living Water)</span>
@@ -149,10 +156,10 @@ export default function ScrollZoomPrologue({ onEnter }: ScrollZoomPrologueProps)
           </p>
 
           <p className="mt-3 text-xs sm:text-sm text-[#E07A5F] max-w-xl mx-auto font-mono tracking-wider">
-            Scroll down to zoom into the hands of the earth & descend into the zero-power climate sanctuary
+            Move cursor over the hands to depixelate • Scroll down to zoom into the earth & descend into the sanctuary
           </p>
 
-          {/* Interactive Zoom Feedback Indicator */}
+          {/* Interactive Zoom & Descent Feedback Indicator */}
           <div className="mt-6 inline-flex flex-col items-center bg-black/40 backdrop-blur-md border border-white/10 px-5 py-2.5 rounded-2xl">
             <div className="flex items-center space-x-3 text-xs text-stone-300">
               <span className="font-mono text-[#E07A5F]">DESCENT DEPTH:</span>
@@ -171,7 +178,7 @@ export default function ScrollZoomPrologue({ onEnter }: ScrollZoomPrologueProps)
         </div>
 
         {/* Bottom Prompts & Scroll Cue */}
-        <div className="relative z-20 w-full max-w-xl mx-auto flex flex-col items-center pb-4 text-center">
+        <div className="relative z-20 w-full max-w-xl mx-auto flex flex-col items-center pb-4 text-center pointer-events-auto">
           <button
             onClick={handleScrollDown}
             className="group flex flex-col items-center text-xs text-stone-300 hover:text-white transition-colors cursor-pointer"
@@ -189,3 +196,4 @@ export default function ScrollZoomPrologue({ onEnter }: ScrollZoomPrologueProps)
     </section>
   );
 }
+
